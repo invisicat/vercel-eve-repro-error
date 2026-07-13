@@ -1,43 +1,38 @@
 # vercel-eve-repro-error
 
-Minimal reproduction of the iMessage channel breaking in an [eve](https://eve.dev/docs)
-agent after upgrading the iMessage chat adapter to the scoped
-`@photon-ai/chat-adapter-imessage` package.
+Reproduction of the iMessage channel breaking in an [eve](https://eve.dev/docs)
+agent deployed on Vercel with Photon/Spectrum Cloud iMessage.
 
-Based on the [`photon-hq/vercel-eve-imessage-example`](https://github.com/photon-hq/vercel-eve-imessage-example)
-example, reduced to the pieces needed to trigger the failure.
+This is a complete, self-contained agent on the latest packages. Nothing to add
+or change — deploy it and it breaks.
 
 ## Status
 
 **Broken at runtime.** `eve build` succeeds and the app boots, but the iMessage
 channel fails at runtime on the adapter initialization path (constructing the
-adapter / opening the Spectrum Cloud client). This repo exists to reproduce that,
-not to work.
+adapter / opening the Spectrum Cloud client).
 
-## What changed to trigger it
+## Reproduce
 
-Two dependency changes vs. the working example:
+1. Deploy this repo to **Vercel**.
+2. Set the environment variables below with **correct Photon/Spectrum Cloud
+   credentials** in the Vercel project.
+3. Send an iMessage DM to the connected number (or hit the gateway route).
 
-```diff
-- "@vercel/connect": "0.2.2",
-+ "@vercel/connect": "0.3.2",
+The iMessage channel fails on initialization once real credentials are present.
 
-- "chat-adapter-imessage": "^1.1.0",
-+ "@photon-ai/chat-adapter-imessage": "^2.2.0",
+### Environment variables
+
+```bash
+IMESSAGE_PROJECT_ID=your_project_id
+IMESSAGE_PROJECT_SECRET=your_project_secret
+IMESSAGE_WEBHOOK_SECRET=whsec_...      # from the Spectrum Cloud webhook config
+IMESSAGE_USERNAME=assistant            # optional display name
 ```
 
-And the corresponding import in `agent/channels/imessage.ts`:
-
-```diff
-  import {
-    createiMessageAdapter,
-    type iMessageAdapter,
-- } from "chat-adapter-imessage";
-+ } from "@photon-ai/chat-adapter-imessage";
-```
-
-Everything else is the stock example. The break appears only with the
-`@photon-ai/chat-adapter-imessage@^2.2.0` + `@vercel/connect@0.3.2` combination.
+Without `IMESSAGE_PROJECT_ID` / `IMESSAGE_PROJECT_SECRET` the channel stays
+dormant and its routes return 503, so real credentials are required to hit the
+failing init path.
 
 ## Where it breaks
 
@@ -72,28 +67,7 @@ Tracing what "init" means for iMessage through the layers, top to bottom:
 
 So "initialize for iMessage" is not a function you call — it's the `createClient`
 lifecycle work that runs when the adapter/Spectrum instance is built. That is the
-code path that fails after the adapter upgrade.
-
-## Reproduce
-
-```bash
-npm install
-
-# .env.local — cloud mode needs real Photon/Spectrum Cloud credentials
-cat > .env.local <<'EOF'
-IMESSAGE_PROJECT_ID=your_project_id
-IMESSAGE_PROJECT_SECRET=your_project_secret
-IMESSAGE_WEBHOOK_SECRET=whsec_...
-IMESSAGE_USERNAME=assistant
-EOF
-
-npm run build     # succeeds
-npm run dev       # boot, then hit the iMessage channel to trigger the failure
-```
-
-The iMessage channel is dormant (routes return 503) unless
-`IMESSAGE_PROJECT_ID` and `IMESSAGE_PROJECT_SECRET` are set, so real credentials
-are required to hit the failing init path.
+code path that fails on Vercel with real credentials.
 
 ## Layout
 
@@ -109,15 +83,4 @@ agent/
 |   `-- respond.ts              # Deterministic iMessage reply logic
 `-- tools/
     `-- get_current_datetime.ts
-
-Prereqs: Node.js 24.x, npm, a Photon/Spectrum Cloud project (https://app.photon.codes).
-```
-
-## Paste the exact error here
-
-Fill in the runtime stack trace / error message you hit so the team has the exact
-signature:
-
-```text
-<paste error output>
 ```
