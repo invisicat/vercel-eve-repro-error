@@ -20,7 +20,7 @@ import { createMemoryState } from "@chat-adapter/state-memory";
 import {
   createiMessageAdapter,
   type iMessageAdapter,
-} from "chat-adapter-imessage";
+} from "@photon-ai/chat-adapter-imessage";
 import { buildReply } from "../lib/respond.js";
 
 const projectId = process.env.IMESSAGE_PROJECT_ID;

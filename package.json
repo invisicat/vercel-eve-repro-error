@@ -14,10 +14,10 @@
   },
   "dependencies": {
     "@chat-adapter/state-memory": "^4.31.0",
-    "@vercel/connect": "0.2.2",
+    "@vercel/connect": "0.3.2",
     "ai": "7.0.0-beta.178",
     "chat": "^4.31.0",
-    "chat-adapter-imessage": "^1.1.0",
+    "@photon-ai/chat-adapter-imessage": "^2.2.0",
     "eve": "^0.13.8",
     "zod": "4.4.3"
   },
