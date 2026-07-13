@@ -8,18 +8,21 @@ or change — deploy it and it breaks.
 
 ## Status
 
-**Broken at runtime.** `eve build` succeeds and the app boots, but the iMessage
-channel fails at runtime on the adapter initialization path (constructing the
-adapter / opening the Spectrum Cloud client).
+**`eve dev` works fine locally.** The failure only shows up once deployed to
+**Vercel**, where **workflows are the failing path**: the Spectrum client is not
+always initialized in that execution context, so the iMessage handling that runs
+under a workflow hits an uninitialized client and fails.
 
 ## Reproduce
 
-1. Deploy this repo to **Vercel**.
-2. Set the environment variables below with **correct Photon/Spectrum Cloud
+1. Run `eve dev` locally — everything works.
+2. Deploy this repo to **Vercel**.
+3. Set the environment variables below with **correct Photon/Spectrum Cloud
    credentials** in the Vercel project.
-3. Send an iMessage DM to the connected number (or hit the gateway route).
+4. Send an iMessage DM to the connected number (or hit the gateway route).
 
-The iMessage channel fails on initialization once real credentials are present.
+Locally it works. On Vercel, the workflow path runs with the Spectrum client
+uninitialized and fails.
 
 ### Environment variables
 
@@ -44,7 +47,10 @@ The relevant file is `agent/channels/imessage.ts`. In Photon cloud mode
 3. Exposes two eve routes: `POST /webhooks/imessage` and `GET /gateway`
    (`imessage.startGatewayListener(...)`).
 
-The failure is in the initialization done at (1)/(3), not in eve or the routing.
+Under `eve dev` this initializes and runs fine. On Vercel, the code runs inside a
+workflow execution context where the Spectrum client is not always initialized, so
+the same path fails — the failure is the uninitialized client, not eve or the
+routing.
 
 ## How iMessage initialization actually flows (debugging notes)
 
@@ -66,8 +72,9 @@ Tracing what "init" means for iMessage through the layers, top to bottom:
   flushed on the next call). This is the plugin init, not a channel setup call.
 
 So "initialize for iMessage" is not a function you call — it's the `createClient`
-lifecycle work that runs when the adapter/Spectrum instance is built. That is the
-code path that fails on Vercel with real credentials.
+lifecycle work that runs when the adapter/Spectrum instance is built. Under
+`eve dev` that lifecycle runs; in a Vercel workflow it is not always run, leaving
+the Spectrum client uninitialized on the path the workflow takes.
 
 ## Layout
 
