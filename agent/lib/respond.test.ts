@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { buildReply } from "./respond.js";
+import { buildReply, HELP } from "./respond.js";
 import { currentDateTime, isValidTimezone } from "./datetime.js";
 
 // A fixed instant: 2026-06-25T15:30:00Z
@@ -15,9 +15,16 @@ test("handles empty input", () => {
   );
 });
 
-test("answers a time question", () => {
+test("answers a time question with markdown styling", () => {
   const reply = buildReply("what time is it?", NOW);
   expect(reply.startsWith("It's currently ")).toBe(true);
+  expect(reply).toContain("**");
+});
+
+test("help lists the demo commands", () => {
+  for (const command of ["react", "unreact", "delete", "fetch"]) {
+    expect(HELP).toContain(`\`${command}\``);
+  }
 });
 
 test("answers a date question", () => {

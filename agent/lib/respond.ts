@@ -3,6 +3,8 @@
  *
  * The iMessage channel calls `buildReply(text)` to answer a DM without invoking
  * any LLM: it recognizes date/time questions and otherwise echoes the message.
+ * Replies are CommonMark — the adapter (v2) sends them through spectrum's
+ * `markdown()` builder so iMessage renders them as native styled text.
  * Pure and synchronous so it can be unit-tested directly. When a model is wired
  * up later, this is replaced by routing through the eve agent.
  */
@@ -36,7 +38,7 @@ function timezoneFromText(text: string): string | undefined {
 }
 
 /**
- * Build a plain-text reply for an inbound DM. `now` is injectable for tests.
+ * Build a markdown reply for an inbound DM. `now` is injectable for tests.
  */
 export function buildReply(text: string, now: Date = new Date()): string {
   const trimmed = text.trim();
@@ -46,10 +48,26 @@ export function buildReply(text: string, now: Date = new Date()): string {
       { timezone: timezoneFromText(trimmed) },
       now,
     );
-    return `It's currently ${human} (${timezone}).`;
+    return `It's currently **${human}** (${timezone}).`;
   }
 
   if (!trimmed) return "I didn't catch that — try sending some text.";
 
   return `You said: "${trimmed}"`;
 }
+
+/**
+ * Markdown help text for the `help` command: the demo commands the iMessage
+ * channel routes on, each exercising one adapter v2 capability.
+ */
+export const HELP = [
+  "**eve iMessage test agent** — things to try:",
+  "- `react` — I'll ❤️ your message",
+  "- `unreact` — I'll retract that ❤️",
+  "- `delete` — I'll unsend my previous reply (and 👍 yours to confirm)",
+  "- `fetch` — I'll look your message up by id and echo what I found",
+  "- `effect <name>` — expressive send (bare `effect` = confetti). Screen: confetti, fireworks, balloons, heart, lasers, celebration, sparkles, spotlight, echo. Bubble: slam, loud, gentle, invisible",
+  "- `miniapp <url>` — send the URL as a mini-app card (bare `miniapp` = example.com/menu)",
+  '- a date/time question ("what time is it in Tokyo?")',
+  "- anything else gets echoed back as **native styled text**",
+].join("\n");
